@@ -4,6 +4,7 @@ import logging
 import os
 import datetime
 import warnings
+import sys
 
 # External libs
 import numpy as np
@@ -163,6 +164,8 @@ def process_climate_data(gdir, y0=None, y1=None, output_filesuffix=None,
     **kwargs :
         any other argument relevant to the task that will be called.
     """
+
+    print(gdir.rgi_id,file=sys.stderr)
 
     # Which climate should we use?
     baseline = cfg.PARAMS['baseline_climate']
@@ -975,27 +978,30 @@ def local_t_star(gdir, *, ref_df=None, tstar=None, bias=None):
     # mustar is taking calving into account (units of specific MB)
     mustar = (np.mean(prcp_yr) - cmb) / np.mean(temp_yr)
     if cfg.PARAMS['swarm_mu_method']:
-        if not np.isfinite(mustar):
+     if not np.isfinite(mustar):
             mustar = (cfg.PARAMS['swarm_mu'])
 
             print('{} defaulting to a generic mu ({}) since it is infinite'.format(gdir.rgi_id, mustar))
-        if not (cfg.PARAMS['min_mu_star'] <= mustar <= cfg.PARAMS['max_mu_star']):
+     if not (cfg.PARAMS['min_mu_star'] <= mustar <= cfg.PARAMS['max_mu_star']):
             mustar = (cfg.PARAMS['swarm_mu'])
 
             print('{} defaulting to a generic mu ({}) since outside the range'.format(gdir.rgi_id, mustar))
 
-    # if not np.isfinite(mustar):
-    #     raise MassBalanceCalibrationError('{} has a non finite '
-    #                                       'mu'.format(gdir.rgi_id))
+    else:
+     if not np.isfinite(mustar):
+         raise MassBalanceCalibrationError('{} has a non finite '
+                                           'mu'.format(gdir.rgi_id))
 
     # Clip it?
-    if cfg.PARAMS['clip_mu_star']:
-        mustar = utils.clip_min(mustar, 0)
+     if cfg.PARAMS['clip_mu_star']:
+         mustar = utils.clip_min(mustar, 0)
 
     # If mu out of bounds, raise
-    # if not (cfg.PARAMS['min_mu_star'] <= mustar <= cfg.PARAMS['max_mu_star']):
-    #     raise MassBalanceCalibrationError('{}: mu* out of specified bounds: '
-    #                                       '{:.2f}'.format(gdir.rgi_id, mustar))
+     if not (cfg.PARAMS['min_mu_star'] <= mustar <= cfg.PARAMS['max_mu_star']):
+         raise MassBalanceCalibrationError('{}: mu* out of specified bounds: '
+                                           '{:.2f}'.format(gdir.rgi_id, mustar))
+
+    
 
     # Scalars in a small dict for later
     df = dict()
@@ -1042,7 +1048,8 @@ def _recursive_mu_star_calibration(gdir, fls, t_star, first_call=True,
                                                 year_range=yr_range,
                                                 flatten=False)
 #So basically usually trys to opimize finding mu but we can skip this dan_note_2
-    if force_mu is None and cfg.PARAMS['swarm_mu_method']:
+#    if force_mu is None and cfg.PARAMS['swarm_mu_method']:
+    if force_mu is None:
         try:
             mu_star = optimization.brentq(_mu_star_per_minimization,
                                           cfg.PARAMS['min_mu_star'],

@@ -12,6 +12,7 @@ from oggm.utils import (SuperclassMeta, lazy_property, floatyear_to_date,
                         date_to_floatyear, monthly_timeseries, ncDataset,
                         tolist, clip_min, clip_max, clip_array)
 from oggm.exceptions import InvalidWorkflowError
+from IPython import embed
 
 
 class MassBalanceModel(object, metaclass=SuperclassMeta):
@@ -488,7 +489,7 @@ class ConstantMassBalance(MassBalanceModel):
     """
 
     def __init__(self, gdir, mu_star=None, bias=None,
-                 y0=None, halfsize=15, filename='climate_historical',
+                 y0=None, halfsize=None, filename='climate_historical',
                  input_filesuffix='', **kwargs):
         """Initialize
 
@@ -523,6 +524,10 @@ class ConstantMassBalance(MassBalanceModel):
         if y0 is None:
             df = gdir.read_json('local_mustar')
             y0 = df['t_star']
+
+        if halfsize is None:
+            halfsize = cfg.PARAMS['mu_star_halfperiod']
+
 
         # This is a quick'n dirty optimisation
         try:
